@@ -1,0 +1,109 @@
+from cmu_graphics import *
+import random
+
+class Order:
+    def __init__(self, orderNum, flavor, syrup, mix, drizzle, toppings):
+        self.orderNum = orderNum
+        self.flavor = flavor
+        self.syrup = syrup
+        self.mix = mix
+        self.wc = True
+        self.drizzle = drizzle
+        self.toppings = toppings
+
+    def __eq__(self, other):
+        if isinstance(other, Drink):
+            if ( (self.flavor == other.flavor) and (self.syrup == other.syrup) and
+            (self.mix == other.mix) and (other.wc == True) and (self.drizzle == other.drizzle) and
+            (self.toppings == other.toppings) ):
+                return True
+        else:
+            return False
+        
+    def __hash__(self):
+        return hash(str(self.orderNum))
+    
+    def __repr__(self):
+        return f'Drink #{self.orderNum}: flavor: {self.flavor}, syrup: {self.syrup}, mix: {self.mix}, drizzle: {self.drizzle}, toppings: {self.toppings}'
+    
+class Drink:
+    def __init__(self, order, flavor, syrup, mix, drizzle):
+        self.order = order
+        self.flavor = flavor
+        self.syrup = syrup
+        self.mix = mix
+        self.wc = True
+        self.drizzle = drizzle
+        self.toppings = []
+
+    def __eq__(self, other):
+        if isinstance(other, Order):
+            if ( (self.flavor == other.flavor) and (self.syrup == other.syrup) and
+            (self.mix == other.mix) and (other.wc == True) and (self.drizzle == other.drizzle) and
+            (self.toppings == other.toppings) ):
+                return True
+        else:
+            return False
+        
+    def __hash__(self):
+        return hash(str(self))   
+
+def takeOrder(app, orderNum):
+    flavor = random.choice(app.flavors)
+    syrup = random.choice(app.syrups)
+    mix = random.choice(app.mix)
+    drizzle = random.choice(app.drizzles)
+    toppings = [random.choice(app.toppingsA), random.choice(app.toppingsB)]
+    order = Order(orderNum, flavor, syrup, mix, drizzle, toppings)
+    return order
+
+def compareOrder(order, drink):
+    if order == drink:
+        return True
+    else:
+        return False
+    
+def onAppStart(app):
+    app.flavors = ["chocolate", "strawberry", "cinnamon", "grape", "oreo", "blueberry", "banana", "cookie"]
+    app.syrups = ["strawberry", "chocolate", "vanilla", "banana"]
+    app.mix = [25, 50, 75, 100]
+    app.toppingsA = ["oreo", "cherry"]
+    app.toppingsB = ["choc chips", "sprinkles"]
+    app.drizzles = ["strawberry", "chocolate"]
+    app.orderNum = 1
+
+    app.startGameScreen = True
+    app.orderScreen = False
+    app.orderTaken = False
+
+def distance(x0, y0, x1, y1):
+    return ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+
+def redrawAll(app):
+    if app.startGameScreen:
+        drawLabel("Millie's Freezeria", 500, 150, size=50)
+        drawLabel("Take customer orders and build their milkshakes!", 500, 200)
+        drawLabel("Press enter to play", 500, 250)
+    elif app.orderScreen:
+        drawCircle(300, 400, 50, fill="darkSeaGreen")
+        if app.orderTaken:
+            drawRect(500, 100, 400, 600, border="black", fill="white")
+
+def onKeyPress(app, key):
+    if app.startGameScreen and (key == "enter"):
+        app.startGameScreen = False
+        app.orderScreen = True
+
+def onMousePress(app, mouseX, mouseY):
+    if app.orderScreen and (distance(mouseX, mouseY, 300, 400) <= 50):
+        order = takeOrder(app, app.orderNum)
+        app.orderTaken = True
+        app.orderNum += 1
+        print(order)
+
+def main():
+    runApp(width = 1000, height = 1000)
+
+main()
+
+    
