@@ -66,7 +66,7 @@ def compareOrder(order, drink):
         return False
     
 def onAppStart(app):
-    app.flavors = ["choc", "strawberry", "matcha", "grape", "oreo", "blueberry", "banana", "cookie"]
+    app.flavors = ["choc", "strawberry", "matcha", "grape", "pb", "blueberry", "banana", "cookie"]
     app.syrups = ["strawberry", "choc", "vanilla", "banana"]
     app.mix = ["25", "50", "75", "100"]
     app.toppingsA = ["oreoCookie", "cherry"]
@@ -83,12 +83,17 @@ def onAppStart(app):
     app.orderScreen = False
     app.orderTaken = False
     app.buildMilkStation = False
+    app.isPouring = False
+    app.isFilling = False
     app.milkPoured = False
     app.buildFlavorStation = False
+    app.isPouringFlavor = False
     app.flavorSelected = False
     app.flavorPoured = False
     app.buildSyrupStation = False
     app.syrupSelected = False
+    app.isPouringSyrup = False
+    app.isFillingSyrup = False
     app.syrupPoured = False
     app.mixStation = False
     app.drinkInMixer = False
@@ -97,12 +102,21 @@ def onAppStart(app):
     app.toppingsStation = False
     app.compareStation = False
 
-    app.test = False 
-
     app.beeperX = 176
     app.beeperXHitBottom = True
     app.stepsPerSecond = 50
+    app.pouringLiquidLevel = 0
+    app.pouringSyrupLevel = 0
+    app.fillingY = 0
+    app.fillingX = 0
+    app.circles = []
+    app.cX = 215
+    app.cY = 250
+    app.syrupX = 0
+    app.syrupY = 0
     app.mixLevel = 0
+
+    
 
 def distance(x0, y0, x1, y1):
     return ((x1 - x0)**2 + (y1 - y0)**2)**0.5
@@ -130,6 +144,30 @@ def drawOrder(app):
         drawImage(app.order.toppings[0]+".png", 480+(i*50), 90, width=40, height=40)
     drawLine(450, 80, 650, 80)
     drawLabel(f"Order #{app.orderNum}", 495, 65, size=20)
+
+def drawMilkshake(app):
+    if (app.milkPoured == True) and (app.drinkInMixer == False):
+        drawPolygon(190, 405, 260, 405, 270, 345, 180, 345, fill="cornSilk")
+    if (app.flavorPoured == True) and (app.drinkInMixer == False):
+        flavorColor = flavorColors(app)
+        altFlavorColor = flavorAltColors(app)
+        drawPolygon(270, 345, 180, 345, 177, 325, 273, 325, fill=altFlavorColor)
+        cx = 185
+        cy = 340
+        while cx < 270:
+            drawCircle(cx, cy, 5, fill=flavorColor)
+            cx += 10
+            if cy == 340:
+                cy = 330
+            else:
+                cy = 340
+    if (app.syrupPoured == True) and (app.drinkInMixer == False):
+        syrupColor = syrupColors(app)
+        drawRect(176, 315, 97, 10, fill = syrupColor)
+    drawLine(170, 285, 190, 405)
+    drawLine(190, 405, 260, 405)
+    drawLine(260, 405, 280, 285)
+    drawOval(225, 285, 110, 10, fill=None, border="black")
 
 def drawBuildMilk(app):
     drawRect(150, 50, 150, 150, fill="silver")
@@ -170,9 +208,50 @@ def drawFlavorSelection(app):
     drawImage("cookie.png", 100, 125, width=50, height=50)
     drawImage("blueberry.png", 305, 70, width=50, height=50)
     drawImage("choc.png", 305, 125, width=50, height=50)
-    drawImage("oreo.png", 360, 70, width=50, height=50)
+    drawImage("pb.png", 360, 70, width=50, height=50)
     drawImage("grape.png", 360, 125, width=50, height=50)
     drawLabel("choose flavor", 225, 125)
+
+def flavorColors(app):
+    if app.drink.flavor == "strawberry":
+        return "lightPink"
+    elif app.drink.flavor == "banana":
+        return "khaki"
+    elif app.drink.flavor == "matcha":
+        return "oliveDrab"
+    elif app.drink.flavor == "cookie":
+        return "tan"
+    elif app.drink.flavor == "blueberry":
+        return "cornflowerBlue"
+    elif app.drink.flavor == "choc":
+        return "saddleBrown"
+    elif app.drink.flavor == "pb":
+        return "chocolate"
+    elif app.drink.flavor == "grape":
+        return "mediumPurple"
+    
+def flavorAltColors(app):
+    if app.drink.flavor == "strawberry":
+        return "mistyRose"
+    elif app.drink.flavor == "banana":
+        return "ivory"
+    elif app.drink.flavor == "matcha":
+        return "darkSeaGreen"
+    elif app.drink.flavor == "cookie":
+        return "linen"
+    elif app.drink.flavor == "blueberry":
+        return "aliceBlue"
+    elif app.drink.flavor == "choc":
+        return "antiqueWhite"
+    elif app.drink.flavor == "pb":
+        return "blanchedAlmond"
+    elif app.drink.flavor == "grape":
+        return "ghostWhite"
+
+def drawFlavorPouring(app):
+    color = flavorColors(app)
+    for (circleX, circleY) in app.circles: 
+        drawCircle(circleX, circleY, 5, fill=color)
 
 def drawSyrupSelection(app):
     drawRect(40, 50, 57.5, 200, fill="lightPink")
@@ -184,6 +263,16 @@ def drawSyrupSelection(app):
     drawRect(357.5, 50, 57.5, 200, fill="khaki")
     drawImage("banana.png", 360.5, 140, width=50, height=50)
     drawLabel("choose flavor", 225, 125)
+
+def syrupColors(app):
+    if app.drink.syrup == "strawberry":
+        return "paleVioletRed"
+    elif app.drink.syrup == "vanilla":
+        return "wheat"
+    elif app.drink.syrup == "choc":
+        return "sienna"
+    elif app.drink.syrup == "banana":
+        return "goldenRod"
 
 def getFlavor(app, mouseX, mouseY):
     if (mouseX < 95) and (mouseX > 45) and (mouseY < 120) and (mouseY > 70):
@@ -211,7 +300,7 @@ def getFlavor(app, mouseX, mouseY):
         app.flavorSelected = True
         #print("choc")
     elif (mouseX < 410) and (mouseX > 360) and (mouseY < 120) and (mouseY > 70):
-        app.drink.flavor = "oreo"
+        app.drink.flavor = "pb"
         app.flavorSelected = True
         #print("oreo")
     elif (mouseX < 410) and (mouseX > 360) and (mouseY < 175) and (mouseY > 125):
@@ -241,7 +330,8 @@ def drawMix(app):
     drawRect(150, 50, 150, 150, fill="silver")
     drawRect(165, 150, 124, 20, border="black", fill="white")
     if app.mixLevel > 0:
-        drawRect(165, 150, app.mixLevel, 20, border="black", fill="mediumPurple")
+        syrupColor = syrupColors(app)
+        drawRect(165, 150, app.mixLevel, 20, border="black", fill=syrupColor)
     drawLine(196, 150, 196, 170)
     drawLine(227, 150, 227, 170)
     drawLine(258, 150, 258, 170)
@@ -267,53 +357,76 @@ def redrawAll(app):
         drawLabel("Press enter to play", 350, 350)
     elif app.orderScreen:
         drawLabel("Order Station", 100, 25, size=20)
-        drawCircle(100, 400, 50, fill="darkSeaGreen")
-        drawLabel("take order", 100, 400)
+        drawCircle(100, 500, 50, fill="darkSeaGreen")
+        drawLabel("take order", 100, 500)
         if app.orderTaken:
             drawOrder(app)
-            drawCircle(100, 400, 50, fill="lightCoral")
-            drawLabel("order taken", 100, 400)
-            drawCircle(300, 400, 50, fill="darkSeaGreen")
-            drawLabel("continue", 300, 400)
+            drawCircle(100, 500, 50, fill="lightCoral")
+            drawLabel("order taken", 100, 500)
+            drawCircle(300, 500, 50, fill="darkSeaGreen")
+            drawLabel("continue", 300, 500)
     elif app.buildMilkStation:
         drawOrder(app)
         drawBuildMilk(app)
+        drawMilkshake(app)
         drawLabel("Build Station - Step 1: Milk", 150, 25, size=20)
+        if app.isPouring and (app.pouringLiquidLevel > 0):
+            drawRect(205, 250, 40, app.pouringLiquidLevel, fill="cornSilk")
+            drawMilkshake(app)
+        if app.isFilling and (app.fillingY > 0):
+            drawPolygon(190, 405, 260, 405, 260+app.fillingX, 405-app.fillingY, 190-app.fillingX, 405-app.fillingY, fill="cornSilk")
+            drawMilkshake(app)
         if app.milkPoured:
-            drawCircle(300, 400, 50, fill="darkSeaGreen")
-            drawLabel("continue", 300, 400)
+            drawMilkshake(app)
+            drawCircle(300, 500, 50, fill="darkSeaGreen")
+            drawLabel("continue", 300, 500)
     elif app.buildFlavorStation:
         drawOrder(app)
         drawFlavorSelection(app)
+        drawMilkshake(app)
         drawLabel("Build Station - Step 2: Flavor", 150, 25, size=20)
         if app.flavorSelected:
             drawBuildMilk(app)
+            if app.isPouringFlavor and (app.cY > 254):
+                drawFlavorPouring(app)
             if app.flavorPoured:
-                drawCircle(300, 400, 50, fill="darkSeaGreen")
-                drawLabel("continue", 300, 400)
+                drawMilkshake(app)
+                drawCircle(300, 500, 50, fill="darkSeaGreen")
+                drawLabel("continue", 300, 500)
     elif app.buildSyrupStation:
         drawOrder(app)
         drawSyrupSelection(app)
+        drawMilkshake(app)
         drawLabel("Build Station - Step 3: Syrup", 150, 25, size=20)
         if app.syrupSelected:
             drawBuildMilk(app)
+            syrupColor = syrupColors(app)
+            if app.isPouringSyrup and app.syrupY > 0: 
+                drawRect(225, 250, 5, app.syrupY, fill=syrupColor)
+                drawMilkshake(app)
+            if app.isFillingSyrup and app.syrupX > 0:
+                drawRect(225-app.syrupX, 315, app.syrupX, 10, fill=syrupColor)
+                drawRect(225, 315, app.syrupX, 10, fill=syrupColor)
+                drawMilkshake(app)
             if app.syrupPoured:
-                drawCircle(300, 400, 50, fill="darkSeaGreen")
-                drawLabel("continue", 300, 400)
+                drawMilkshake(app)
+                drawCircle(300, 500, 50, fill="darkSeaGreen")
+                drawLabel("continue", 300, 500)
     elif app.mixStation:
         drawOrder(app)
+        drawMilkshake(app)
         drawLabel("Build Station - Step 4: Mix", 150, 25, size=20)
-        drawCircle(100, 400, 50, fill="darkSeaGreen")
-        drawLabel("place in mixer", 100, 400)
+        drawCircle(100, 500, 50, fill="darkSeaGreen")
+        drawLabel("place in mixer", 100, 500)
         drawMix(app)
         if app.drinkInMixer:
-            drawCircle(200, 400, 50, fill="khaki")
-            drawLabel("remove from mixer", 200, 400)
+            drawCircle(200, 500, 50, fill="khaki")
+            drawLabel("remove from mixer", 200, 500)
         if app.mixed:
-            drawCircle(200, 400, 50, fill="lightCoral")
-            drawLabel("drink removed", 200, 400)
-            drawCircle(300, 400, 50, fill="darkSeaGreen")
-            drawLabel("continue", 300, 400)
+            drawCircle(200, 500, 50, fill="lightCoral")
+            drawLabel("drink removed", 200, 500)
+            drawCircle(300, 500, 50, fill="darkSeaGreen")
+            drawLabel("continue", 300, 500)
 
 
 def onKeyPress(app, key):
@@ -323,22 +436,24 @@ def onKeyPress(app, key):
 
 def onMousePress(app, mouseX, mouseY):
     #take order button
-    if app.orderScreen and (distance(mouseX, mouseY, 100, 400) <= 50) and (app.orderTaken == False):
+    if app.orderScreen and (distance(mouseX, mouseY, 100, 500) <= 50) and (app.orderTaken == False):
         app.order = takeOrder(app, app.orderNum)
         app.orderTaken = True
         app.orderNum += 1
         print(app.order)
     #continue from order to build milk station
-    if app.orderScreen and (distance(mouseX, mouseY, 300, 400) <= 50) and (app.orderTaken == True):
+    if app.orderScreen and (distance(mouseX, mouseY, 300, 500) <= 50) and (app.orderTaken == True):
         app.orderScreen = False
         app.buildMilkStation = True
     #build milk station
     if app.buildMilkStation and (distance(mouseX, mouseY, 225, 225) <= 20) and (app.milkPoured == False):
         pour(app)
-        app.milkPoured = True
+        app.isPouring = True
+        if app.isPouring == False:
+            app.milkPoured = True
         print("score: ", app.score)
     #continue from build milk to build flavor station
-    if app.buildMilkStation and (distance(mouseX, mouseY, 300, 400) <= 50) and (app.milkPoured == True):
+    if app.buildMilkStation and (distance(mouseX, mouseY, 300, 500) <= 50) and (app.milkPoured == True):
         app.buildMilkStation = False
         app.buildFlavorStation = True
     #build flavor station - flavor selection
@@ -349,10 +464,12 @@ def onMousePress(app, mouseX, mouseY):
     #build flavor station - pour flavor
     if app.buildFlavorStation and (distance(mouseX, mouseY, 225, 225) <= 20) and (app.flavorPoured == False):
         pour(app)
-        app.flavorPoured = True
+        app.isPouringFlavor = True
+        if app.isPouringFlavor == False:
+            app.flavorPoured = True
         print("score: ", app.score)
     #continue from build flavor to build syrup station
-    if app.buildFlavorStation and (distance(mouseX, mouseY, 300, 400) <= 50) and (app.flavorPoured == True):
+    if app.buildFlavorStation and (distance(mouseX, mouseY, 300, 500) <= 50) and (app.flavorPoured == True):
         app.buildFlavorStation = False
         app.buildSyrupStation = True
     #build syrup station - syrup selection
@@ -363,24 +480,26 @@ def onMousePress(app, mouseX, mouseY):
     #build syrup station - pour syrup
     if app.buildSyrupStation and (distance(mouseX, mouseY, 225, 225) <= 20) and (app.syrupPoured == False):
         pour(app)
-        app.syrupPoured = True 
+        app.isPouringSyrup = True
+        if app.isPouringSyrup == False:
+            app.syrupPoured = True 
         print("score: ", app.score)
     #continue from build syrup to mix station
-    if app.buildSyrupStation and (distance(mouseX, mouseY, 300, 400) <= 50) and (app.syrupPoured == True):
+    if app.buildSyrupStation and (distance(mouseX, mouseY, 300, 500) <= 50) and (app.syrupPoured == True):
         app.buildSyrupStation = False
         app.mixStation = True
     #place in mix station
-    if app.mixStation and (distance(mouseX, mouseY, 100, 400) <= 50) and (app.drinkInMixer == False):
+    if app.mixStation and (distance(mouseX, mouseY, 100, 500) <= 50) and (app.drinkInMixer == False):
         app.drinkInMixer = True
         runMixer(app)
     #remove from mix station
-    if app.mixStation and (distance(mouseX, mouseY, 200, 400) <= 50) and (app.drinkInMixer == True):
+    if app.mixStation and (distance(mouseX, mouseY, 200, 500) <= 50) and (app.drinkInMixer == True):
         app.drinkInMixer = False
         app.mixed = True
     
 
 def onStep(app):
-    if (app.buildMilkStation and (app.milkPoured == False)) or ((app.buildFlavorStation) and (app.flavorPoured == False)) or ((app.buildSyrupStation) and (app.syrupPoured == False)):
+    if (app.buildMilkStation and (app.isPouring == False) and (app.isFilling == False) and (app.milkPoured == False)) or ((app.buildFlavorStation) and (app.isPouringFlavor == False) and (app.flavorPoured == False)) or ((app.buildSyrupStation == True) and (app.isPouringSyrup == False) and (app.isFillingSyrup == False) and (app.syrupPoured == False)):
         if (app.beeperX > 175) and (app.beeperX < 275) and (app.beeperXHitBottom == True):
             app.beeperX += 5
         if app.beeperX >= 275 or app.beeperX <= 175:
@@ -391,6 +510,40 @@ def onStep(app):
                 app.beeperX += 5
         if (app.beeperX > 175) and (app.beeperX < 275) and (app.beeperXHitBottom == False):
             app.beeperX -= 5
+    if (app.buildMilkStation and app.isPouring) and (app.pouringLiquidLevel <= 150):
+        app.pouringLiquidLevel += 8
+    if app.pouringLiquidLevel > 150:
+        app.isFilling = True
+    if (app.buildMilkStation and app.isFilling) and (app.fillingY <= 60):
+        app.fillingY += 1
+        app.fillingX += (1/6)
+        # print("app.fillingY: ", app.fillingY, "; app.fillingX: ", app.fillingX)
+    if (app.buildMilkStation and app.fillingY > 60):
+        app.milkPoured = True
+    if app.milkPoured:
+        app.isPouring = False
+        app.isFilling = False
+    if (app.buildFlavorStation and app.isPouringFlavor) and (app.cY <= 340):
+        app.cY += 10
+        app.circles.append((app.cX, app.cY))
+        if app.cX == 215:
+            app.cX += 20
+        else:
+            app.cX = 215
+    if (app.cY > 340):
+        app.isPouringFlavor = False
+        app.flavorPoured = True
+    if (app.buildSyrupStation and app.isPouringSyrup and app.syrupY <= 75):
+        app.syrupY += 8
+    if (app.buildSyrupStation and app.syrupY > 75):
+        app.isFillingSyrup = True
+    if (app.buildSyrupStation and app.isFillingSyrup and app.syrupX <= 47):
+        app.syrupX += 5
+    if app.buildSyrupStation and app.syrupX > 47:
+        app.syrupPoured = True
+    if app.syrupPoured:
+        app.isPouringSyrup = False
+        app.isFillingSyrup = False
     if (app.mixStation) and (app.drinkInMixer == True) and (app.mixed == False) and (app.mixLevel <= 124):
         app.mixLevel += 0.5
         
