@@ -125,6 +125,19 @@ def onAppStart(app):
     app.flavorRadius = 5
 
     app.counter = 1
+    app.wcSelected = False
+    app.strawbDrizzSelected = False
+    app.chocDrizzSelected = False
+    app.isDragging = False
+    app.wcX = 330
+    app.wcY = 60
+    app.sdX = 60
+    app.sdY = 60
+    app.cdX = 100
+    app.cdY = 60
+    app.wcRotateAngle = 0
+    app.sdRotateAngle = 0
+    app.cdRotateAngle = 0
     
 
 def distance(x0, y0, x1, y1):
@@ -195,7 +208,10 @@ def drawMilkshake(app):
     drawLine(170, 285, 190, 405)
     drawLine(190, 405, 260, 405)
     drawLine(260, 405, 280, 285)
-    drawOval(225, 285, 110, 10, fill=None, border="black")
+    drawArc(225, 285, 110, 15, 180, 0, fill=None, border="black")
+    #drawArc(225, 285, 110, 15, 0, 180, fill=None, border="black", rotateAngle=180)
+    #drawLine()
+    #drawOval(225, 285, 110, 15, fill=None, border="black")
 
 def drawBuildMilk(app):
     drawRect(150, 50, 150, 150, fill="silver")
@@ -417,8 +433,13 @@ def drawToppingsOptions(app):
     drawCircle(95, 300, 30, fill=None, border="black")
     drawImage("sprinkles.png", 320, 350, width=60, height=60)
     drawImage("chocChips.png", 320, 270, width=60, height=60)
-    drawImage("wcBottle.png", 330, 60, width=30, height=120)
-    drawImage("stawbDrizzleBottle.png", 60, 60, width=30, height=120)
+    #whipped cream and drizzle bottles
+    drawImage("wcBottle.png", app.wcX, app.wcY, width=30, height=120, 
+              rotateAngle=app.wcRotateAngle)
+    drawImage("stawbDrizzleBottle.png", app.sdX, app.sdY, width=30, height=120,
+              rotateAngle=app.sdRotateAngle)
+    drawImage("chocDrizzleBottle.png", app.cdX, app.cdY, width=30, height=120, 
+              rotateAngle=app.cdRotateAngle)
 
 def redrawAll(app):
     if app.startGameScreen:
@@ -577,7 +598,44 @@ def onMousePress(app, mouseX, mouseY):
     if app.mixStation and (distance(mouseX, mouseY, 300, 500) <= 50) and (app.mixed == True):
         app.mixStation = False
         app.toppingsStation = True
+    #toppings station
+    if app.toppingsStation and (app.isDragging == False):
+        if (mouseX > app.wcX) and (mouseX < app.wcX+30) and (mouseY > app.wcY) and (mouseY < app.wcY+120):
+            app.wcSelected = True
+            app.isDragging = True
+        if (mouseX > app.sdX) and (mouseX < app.sdX+30) and (mouseY > app.sdY) and (mouseY < app.sdY+120):
+            app.strawbDrizzSelected = True
+            app.isDragging = True
+        if (mouseX > app.cdX) and (mouseX < app.cdX+30) and (mouseY > app.cdY) and (mouseY < app.cdY+120):
+            app.chocDrizzSelected = True
+            app.isDragging = True
         
+def onMouseDrag(app, mouseX, mouseY):
+    if app.wcSelected:
+        app.wcX = mouseX
+        app.wcY = mouseY
+        app.wcRotateAngle = 180
+    elif app.strawbDrizzSelected:
+        app.sdX = mouseX
+        app.sdY = mouseY
+        app.sdRotateAngle = 180
+    elif app.chocDrizzSelected:
+        app.cdX = mouseX
+        app.cdY = mouseY
+        app.cdRotateAngle = 180
+
+def onMouseRelease(app, mouseX, mouseY):
+    app.isDragging = False
+    app.wcSelected = False
+    app.strawbDrizzSelected = False
+    app.chocDrizzSelected = False
+    app.wcRotateAngle = 0
+    app.sdRotateAngle = 0
+    app.cdRotateAngle = 0
+    app.wcX = 330
+    app.sdX = 60
+    app.cdX = 100
+    app.wcY = app.sdY = app.cdY = 60
     
 
 def onStep(app):
@@ -657,7 +715,7 @@ def onStep(app):
                 app.syrupB += (188-179)/186
                 app.milkR -= (255-247)/248
                 app.milkG -= (248-228)/248
-                app.milkB -= (220-188)/248     
+                app.milkB -= (220-188)/248   
 
 def main():
     runApp(width = 700, height = 600)
