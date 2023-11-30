@@ -138,7 +138,19 @@ def onAppStart(app):
     app.wcRotateAngle = 0
     app.sdRotateAngle = 0
     app.cdRotateAngle = 0
+
+    app.wcPouring = False
     
+    app.wcParticleX = 0
+    app.wcParticleY = 0
+    app.wcParticles = []
+    app.fallenWCParticles = {}
+
+def initFallenWCParticles():
+    d = dict()
+    for num in range(1, 46):
+        d[num] = 0
+    return d
 
 def distance(x0, y0, x1, y1):
     return ((x1 - x0)**2 + (y1 - y0)**2)**0.5
@@ -208,10 +220,9 @@ def drawMilkshake(app):
     drawLine(170, 285, 190, 405)
     drawLine(190, 405, 260, 405)
     drawLine(260, 405, 280, 285)
-    drawArc(225, 285, 110, 15, 180, 0, fill=None, border="black")
     #drawArc(225, 285, 110, 15, 0, 180, fill=None, border="black", rotateAngle=180)
     #drawLine()
-    #drawOval(225, 285, 110, 15, fill=None, border="black")
+    drawOval(225, 285, 110, 15, fill=None, border="black")
 
 def drawBuildMilk(app):
     drawRect(150, 50, 150, 150, fill="silver")
@@ -427,12 +438,12 @@ def drawMixCircles(app):
         cx = 185 + dcx
 
 def drawToppingsOptions(app):
-    drawImage("oreoCookie.png", 70, 355, width=50, height=50)
-    drawImage("cherry.png", 70, 275, width=50, height=50)
-    drawCircle(95, 380, 30, fill=None, border="black")
-    drawCircle(95, 300, 30, fill=None, border="black")
-    drawImage("sprinkles.png", 320, 350, width=60, height=60)
-    drawImage("chocChips.png", 320, 270, width=60, height=60)
+    drawImage("oreoCookie.png", 70, 555, width=50, height=50)
+    drawImage("cherry.png", 70, 475, width=50, height=50)
+    drawCircle(95, 580, 30, fill=None, border="black")
+    drawCircle(95, 500, 30, fill=None, border="black")
+    drawImage("sprinkles.png", 320, 550, width=60, height=60)
+    drawImage("chocChips.png", 320, 470, width=60, height=60)
     #whipped cream and drizzle bottles
     drawImage("wcBottle.png", app.wcX, app.wcY, width=30, height=120, 
               rotateAngle=app.wcRotateAngle)
@@ -465,7 +476,8 @@ def redrawAll(app):
             drawRect(205, 250, 40, app.pouringLiquidLevel, fill="cornSilk")
             drawMilkshake(app)
         if app.isFilling and (app.fillingY > 0):
-            drawPolygon(190, 405, 260, 405, 260+app.fillingX, 405-app.fillingY, 190-app.fillingX, 405-app.fillingY, fill="cornSilk")
+            drawPolygon(190, 405, 260, 405, 260+app.fillingX, 405-app.fillingY, 
+                        190-app.fillingX, 405-app.fillingY, fill="cornSilk")
             drawMilkshake(app)
         if app.milkPoured:
             drawMilkshake(app)
@@ -521,10 +533,16 @@ def redrawAll(app):
     elif app.toppingsStation:
         drawOrder(app)
         drawMilkshake(app)
+        drawGrid(app)
+        drawLine(0, 270, 450, 270)
         drawLabel("Toppings Station - Step 6: Toppings", 170, 25, size=20)
-        drawCircle(300, 500, 50, fill="darkSeaGreen")
-        drawLabel("continue", 300, 500)
+        drawCircle(500, 500, 50, fill="darkSeaGreen")
+        drawLabel("continue", 500, 500)
         drawToppingsOptions(app)
+        if app.wcPouring:
+            for particle in app.wcParticles:
+                drawRect(particle[0], particle[1], 10, 10, fill=None, 
+                         border="lightBlue")
 
 
 def onKeyPress(app, key):
@@ -624,18 +642,76 @@ def onMouseDrag(app, mouseX, mouseY):
         app.cdY = mouseY
         app.cdRotateAngle = 180
 
+def drawGrid(app):
+    x = y = 0
+    for i in range(45):
+        drawLine(x, y, x, 270, fill="lightGray")
+        x += 10
+        #y += 10
+    x = y = 0
+    for j in range(27):
+        drawLine(x, y, 450, y, fill="lightGray")
+        #x += 10
+        y += 10
+
+
+def dropWhippedCream(app):
+    app.wcParticles.append([app.wcParticleX+12, app.wcParticleY+120])
+    particles = app.wcParticles
+    removeParticles(app, particles)
+    if app.wcParticles != []:
+        for particle in app.wcParticles:
+            particle[1] += 15
+
+def removeParticles(app, particles):
+    if ((app.wcParticleX+12 >= 170) and (app.wcParticleX+12 <= 280) and (particles[0][1] <= 305)) or (((app.wcParticleX+12 < 170) or (app.wcParticleX+12 > 280)) and particles[0][1] <= 395):
+        return particles
+    else:
+        if (app.wcParticleX+12 >= 170) and (app.wcParticleX+12 <= 280):
+            if particles[0][1] > 305:
+                popped = particles.pop(0)
+        else:
+            if particles[0][1] > 395:
+                popped = particles.pop(0)
+        if popped[0] in app.fallenWCParticles:
+            app.fallenWCParticles[popped[0]] += popped[1]
+        else:
+            app.fallenWCParticles[popped[0]] = popped[1]
+        removeParticles(app, particles)
+    
+
+#def dropWhippedCreamGround(app):
+ #  app.wcParticlesGround.append([app.wcParticleX+12, app.wcParticleY+120])
+
+def onMouseMove(app, mouseX, mouseY):
+    #app.mouseMoving = True
+    if app.wcPouring:
+        app.wcParticleX = mouseX
+        app.wcParticleY = mouseY
+        app.wcX = mouseX
+        app.wcY = mouseY
+
 def onMouseRelease(app, mouseX, mouseY):
-    app.isDragging = False
-    app.wcSelected = False
+    if app.wcSelected:
+        app.wcPouring = True
+    if app.wcPouring:
+        app.wcParticleX = mouseX
+        app.wcParticleY = mouseY
+        app.wcX = mouseX
+        app.wcY = mouseY
+    #app.isDragging = False
+    if app.wcPouring == False:
+        app.wcSelected = False
+        app.wcRotateAngle = 0
+        app.wcX = 330
+        app.wcY = 60
     app.strawbDrizzSelected = False
     app.chocDrizzSelected = False
-    app.wcRotateAngle = 0
     app.sdRotateAngle = 0
     app.cdRotateAngle = 0
-    app.wcX = 330
     app.sdX = 60
     app.cdX = 100
-    app.wcY = app.sdY = app.cdY = 60
+    app.sdY = app.cdY = 60
     
 
 def onStep(app):
@@ -715,7 +791,25 @@ def onStep(app):
                 app.syrupB += (188-179)/186
                 app.milkR -= (255-247)/248
                 app.milkG -= (248-228)/248
-                app.milkB -= (220-188)/248   
+                app.milkB -= (220-188)/248 
+    if app.toppingsStation and app.wcPouring:
+        dropWhippedCream(app)
+        
+
+        '''
+        counter = 0
+        dropWhippedCream(app)
+        if (app.wcParticles[0][0] >= 176 and app.wcParticles[0][0] <= 275 
+            and app.wcParticles[0][1] > 305) or ((app.wcParticles[0][0] < 176
+            or app.wcParticles[0][0] > 275) and app.wcParticles[0][1] > 295): 
+            app.wcParticles.pop(0) 
+        print(counter, "hello")
+        #dropWhippedCream(app)   
+        if app.wcParticles != []:
+            for particle in app.wcParticles:
+                particle[1] += 15
+        counter += 1
+        '''
 
 def main():
     runApp(width = 700, height = 600)
