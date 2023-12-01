@@ -104,7 +104,7 @@ def onAppStart(app):
 
     app.beeperX = 176
     app.beeperXHitBottom = True
-    app.stepsPerSecond = 50
+    app.stepsPerSecond = 60
     app.pouringLiquidLevel = 0
     app.pouringSyrupLevel = 0
     app.fillingY = 0
@@ -546,6 +546,7 @@ def redrawAll(app):
             #print(app.fallenWCParticles)
             for xCoord in app.fallenWCParticles:
                 yCoord = app.fallenWCParticles[xCoord]
+                #print(xCoord)
                 if (xCoord >= 170) and (xCoord <= 280):
                     for y in range(yCoord, 305, 10):
                         drawRect(xCoord, y, 10, 10, fill=None, border="lightBlue")
@@ -675,8 +676,8 @@ def removeParticles(app, particles):
     if particles != []:
         xCoord = particles[0][0]
         yCoord = particles[0][1]
-        if xCoord in app.fallenWCParticles:
-            yBound = app.fallenWCParticles[xCoord]
+        if ((xCoord//10)*10) in app.fallenWCParticles:
+            yBound = app.fallenWCParticles[((xCoord//10)*10)]
         else:
             if (xCoord >= 170) and (xCoord <= 280):
                 yBound = 305
@@ -693,11 +694,12 @@ def removeParticles(app, particles):
     else:
         if particles[0][1] > yBound:
             popped = particles.pop(0)
-            if popped[0] in app.fallenWCParticles:
-                if app.fallenWCParticles[popped[0]] > app.wcY+120:
-                    app.fallenWCParticles[popped[0]] -= 10
+            if (((popped[0]//10)*10)) in app.fallenWCParticles:
+                if app.fallenWCParticles[((popped[0]//10)*10)] > app.wcY+120:
+                    app.fallenWCParticles[((popped[0]//10)*10)] -= 10
+                    print((popped[0]//10)*10);
             else:
-                app.fallenWCParticles[popped[0]] = popped[1]
+                app.fallenWCParticles[((popped[0]//10)*10)] = popped[1]
             removeParticles(app, particles)
  
     '''
