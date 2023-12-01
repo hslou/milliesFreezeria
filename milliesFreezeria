@@ -543,7 +543,15 @@ def redrawAll(app):
             for particle in app.wcParticles:
                 drawRect(particle[0], particle[1], 10, 10, fill=None, 
                          border="lightBlue")
-
+            #print(app.fallenWCParticles)
+            for xCoord in app.fallenWCParticles:
+                yCoord = app.fallenWCParticles[xCoord]
+                if (xCoord >= 170) and (xCoord <= 280):
+                    for y in range(yCoord, 305, 10):
+                        drawRect(xCoord, y, 10, 10, fill=None, border="lightBlue")
+                if (xCoord < 170) or (xCoord > 280):
+                    for y in range(yCoord, 395, 10):
+                        drawRect(xCoord, y, 10, 10, fill=None, border="lightBlue")
 
 def onKeyPress(app, key):
     if app.startGameScreen and (key == "enter"):
@@ -664,7 +672,38 @@ def dropWhippedCream(app):
             particle[1] += 15
 
 def removeParticles(app, particles):
-    if ((app.wcParticleX+12 >= 170) and (app.wcParticleX+12 <= 280) and (particles[0][1] <= 305)) or (((app.wcParticleX+12 < 170) or (app.wcParticleX+12 > 280)) and particles[0][1] <= 395):
+    if particles != []:
+        xCoord = particles[0][0]
+        yCoord = particles[0][1]
+        if xCoord in app.fallenWCParticles:
+            yBound = app.fallenWCParticles[xCoord]
+        else:
+            if (xCoord >= 170) and (xCoord <= 280):
+                yBound = 305
+            elif (xCoord < 170) or (xCoord > 280):
+                yBound = 395
+    elif particles == []:
+        return
+    #base case
+    if (xCoord >= 170) and (xCoord <= 280) and (yCoord <= yBound):
+        return particles
+    #second base case
+    elif ((xCoord < 170) or (xCoord > 280)) and (yCoord <= yBound):
+        return particles
+    else:
+        if particles[0][1] > yBound:
+            popped = particles.pop(0)
+            if popped[0] in app.fallenWCParticles:
+                if app.fallenWCParticles[popped[0]] > app.wcY+120:
+                    app.fallenWCParticles[popped[0]] -= 10
+            else:
+                app.fallenWCParticles[popped[0]] = popped[1]
+            removeParticles(app, particles)
+ 
+    '''
+    if (((app.wcParticleX+12 >= 170) and (app.wcParticleX+12 <= 280) and 
+        (particles[0][1] <= 305)) or (((app.wcParticleX+12 < 170) or 
+                                       (app.wcParticleX+12 > 280)) and particles[0][1] <= 395)):
         return particles
     else:
         if (app.wcParticleX+12 >= 170) and (app.wcParticleX+12 <= 280):
@@ -674,10 +713,11 @@ def removeParticles(app, particles):
             if particles[0][1] > 395:
                 popped = particles.pop(0)
         if popped[0] in app.fallenWCParticles:
-            app.fallenWCParticles[popped[0]] += popped[1]
+            app.fallenWCParticles[popped[0]] += 10
         else:
             app.fallenWCParticles[popped[0]] = popped[1]
         removeParticles(app, particles)
+    '''
     
 
 #def dropWhippedCreamGround(app):
@@ -715,7 +755,10 @@ def onMouseRelease(app, mouseX, mouseY):
     
 
 def onStep(app):
-    if (app.buildMilkStation and (app.isPouring == False) and (app.isFilling == False) and (app.milkPoured == False)) or ((app.buildFlavorStation) and (app.isPouringFlavor == False) and (app.flavorPoured == False)) or ((app.buildSyrupStation == True) and (app.isPouringSyrup == False) and (app.isFillingSyrup == False) and (app.syrupPoured == False)):
+    if ((app.buildMilkStation and (app.isPouring == False) and (app.isFilling == False) and (app.milkPoured == False)) or
+        ((app.buildFlavorStation) and (app.isPouringFlavor == False) and (app.flavorPoured == False)) or
+        ((app.buildSyrupStation == True) and (app.isPouringSyrup == False) and (app.isFillingSyrup == False) and 
+         (app.syrupPoured == False))):
         if (app.beeperX > 175) and (app.beeperX < 275) and (app.beeperXHitBottom == True):
             app.beeperX += 5
         if app.beeperX >= 275 or app.beeperX <= 175:
